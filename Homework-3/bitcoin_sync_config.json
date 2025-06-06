@@ -1,0 +1,25 @@
+{
+    "bitcoin_rpc": {
+        "host": "127.0.0.1",
+        "port": 8332,
+        "username": "bitcoin",
+        "password": "your_secure_password_here"
+    },
+    "database": {
+        "path": "bitcoin.db"
+    },
+    "synchronization": {
+        "sync_interval_minutes": 2,
+        "max_concurrent_blocks": 3,
+        "reorg_safety_blocks": 6
+    },
+    "llm_validation": {
+        "enabled": false,
+        "provider": "openai",
+        "api_key": ""
+    },
+    "logging": {
+        "level": "INFO",
+        "file": "bitcoin_sync.log"
+    }
+}

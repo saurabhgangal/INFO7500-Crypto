@@ -1,0 +1,29 @@
+2025-06-06 15:32:24,201 - INFO - 🚀 Starting Bitcoin Database Sync Manager
+2025-06-06 15:32:24,208 - INFO - ✅ Connected to Bitcoin node - Height: 101, Chain: regtest
+2025-06-06 15:32:24,208 - INFO - 🔄 Starting block synchronization...
+2025-06-06 15:32:24,210 - INFO - ✅ Database is up to date
+2025-06-06 15:32:24,210 - INFO - 📅 Sync scheduled every 5 minutes
+2025-06-06 15:32:25,214 - INFO - 🛑 Bitcoin Database Sync Manager stopped
+2025-06-06 15:33:18,525 - INFO - 🚀 Starting Bitcoin Database Sync Manager
+2025-06-06 15:33:18,532 - INFO - ✅ Connected to Bitcoin node - Height: 101, Chain: regtest
+2025-06-06 15:33:18,532 - INFO - 🔄 Starting block synchronization...
+2025-06-06 15:33:18,533 - INFO - ✅ Database is up to date
+2025-06-06 15:33:18,534 - INFO - 📅 Sync scheduled every 2 minutes
+2025-06-06 15:33:19,537 - INFO - 🛑 Bitcoin Database Sync Manager stopped
+2025-06-06 15:40:36,171 - INFO - 🚀 Starting Bitcoin Database Sync Manager
+2025-06-06 15:40:36,178 - INFO - ✅ Connected to Bitcoin node - Height: 101, Chain: regtest
+2025-06-06 15:40:36,178 - INFO - 🔄 Starting block synchronization...
+2025-06-06 15:40:36,179 - INFO - ✅ Database is up to date
+2025-06-06 15:40:36,179 - INFO - 📅 Sync scheduled every 5 minutes
+2025-06-06 15:40:37,183 - INFO - 🛑 Bitcoin Database Sync Manager stopped
+2025-06-06 15:46:30,505 - INFO - 🚀 Starting Bitcoin Database Sync Manager
+2025-06-06 15:46:30,511 - INFO - ✅ Connected to Bitcoin node - Height: 101, Chain: regtest
+2025-06-06 15:46:30,511 - INFO - 🔄 Starting block synchronization...
+2025-06-06 15:46:30,512 - INFO - ✅ Database is up to date
+2025-06-06 15:46:30,512 - INFO - 📅 Sync scheduled every 5 minutes
+2025-06-06 15:46:31,516 - INFO - 🛑 Bitcoin Database Sync Manager stopped
+2025-06-06 15:46:45,622 - INFO - 🚀 Starting Bitcoin Database Sync Manager
+2025-06-06 15:46:45,628 - INFO - ✅ Connected to Bitcoin node - Height: 101, Chain: regtest
+2025-06-06 15:46:45,628 - INFO - 🔄 Starting block synchronization...
+2025-06-06 15:46:45,629 - INFO - ✅ Database is up to date
+2025-06-06 15:46:45,629 - INFO - 📅 Sync scheduled every 1 minutes

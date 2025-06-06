@@ -1,0 +1,498 @@
+
+## TEST CASE #1: Multi-Temporal Blockchain Analysis
+
+### Natural Language Question:
+Find all Bitcoin addresses that had unusual transaction patterns in the last quarter, where 'unusual' means: (1) their average transaction amount increased by more than 200% compared to their historical average, (2) they started transacting with addresses that were previously inactive for over 6 months, (3) their transaction frequency pattern shifted from weekend-heavy to weekday-heavy, and (4) they received funds from addresses that themselves show signs of mixing behavior (transacting with 10+ different addresses within 1 hour windows at least 3 times). Show me their address, the statistical confidence level of the anomaly, the risk score based on mixing connections, and the temporal shift metrics.
+
+### Expected SQL Query (Correct):
+```sql
+WITH address_historical AS (
+  SELECT 
+    t.from_address,
+    AVG(t.amount) as hist_avg_amount,
+    COUNT(*) as hist_tx_count,
+    AVG(CASE WHEN strftime('%w', t.timestamp) IN ('0','6') THEN 1.0 ELSE 0.0 END) as hist_weekend_ratio
+  FROM transactions t
+  WHERE t.timestamp < date('now', '-3 months')
+  GROUP BY t.from_address
+),
+recent_activity AS (
+  SELECT 
+    t.from_address,
+    AVG(t.amount) as recent_avg_amount,
+    COUNT(*) as recent_tx_count,
+    AVG(CASE WHEN strftime('%w', t.timestamp) IN ('0','6') THEN 1.0 ELSE 0.0 END) as recent_weekend_ratio,
+    COUNT(DISTINCT t.to_address) as unique_recipients
+  FROM transactions t
+  WHERE t.timestamp >= date('now', '-3 months')
+  GROUP BY t.from_address
+),
+dormant_reactivation AS (
+  SELECT DISTINCT t1.from_address
+  FROM transactions t1
+  JOIN transactions t2 ON t1.to_address = t2.from_address
+  WHERE t1.timestamp >= date('now', '-3 months')
+    AND t2.timestamp BETWEEN date('now', '-9 months') AND date('now', '-6 months')
+    AND NOT EXISTS (
+      SELECT 1 FROM transactions t3 
+      WHERE t3.from_address = t1.to_address 
+        AND t3.timestamp BETWEEN date('now', '-6 months') AND date('now', '-3 months')
+    )
+),
+mixing_addresses AS (
+  SELECT t.from_address, COUNT(*) as mixing_incidents
+  FROM transactions t
+  WHERE EXISTS (
+    SELECT 1
+    FROM transactions t2
+    WHERE t2.from_address = t.from_address
+      AND ABS(strftime('%s', t2.timestamp) - strftime('%s', t.timestamp)) <= 3600
+    GROUP BY t2.from_address, 
+             strftime('%Y-%m-%d %H', t2.timestamp)
+    HAVING COUNT(DISTINCT t2.to_address) >= 10
+  )
+  GROUP BY t.from_address
+  HAVING COUNT(*) >= 3
+),
+mixing_connections AS (
+  SELECT 
+    t1.from_address,
+    COUNT(DISTINCT t2.from_address) as mixing_source_count,
+    AVG(ma.mixing_incidents) as avg_mixing_score
+  FROM transactions t1
+  JOIN transactions t2 ON t1.from_address = t2.to_address
+  JOIN mixing_addresses ma ON t2.from_address = ma.from_address
+  WHERE t1.timestamp >= date('now', '-3 months')
+  GROUP BY t1.from_address
+)
+SELECT 
+  ah.from_address,
+  ROUND((ra.recent_avg_amount / ah.hist_avg_amount - 1) * 100, 2) as amount_increase_pct,
+  ROUND(ABS(ra.recent_weekend_ratio - ah.hist_weekend_ratio) / 
+        SQRT((ah.hist_weekend_ratio * (1-ah.hist_weekend_ratio)) / ah.hist_tx_count), 3) as temporal_shift_zscore,
+  COALESCE(mc.mixing_source_count, 0) as mixing_connections,
+  COALESCE(mc.avg_mixing_score, 0) as risk_score,
+  CASE 
+    WHEN (ra.recent_avg_amount / ah.hist_avg_amount > 3.0) AND 
+         ABS(ra.recent_weekend_ratio - ah.hist_weekend_ratio) > 0.3 AND
+         mc.mixing_source_count > 0
+    THEN 'HIGH'
+    WHEN (ra.recent_avg_amount / ah.hist_avg_amount > 2.0) AND 
+         ABS(ra.recent_weekend_ratio - ah.hist_weekend_ratio) > 0.2
+    THEN 'MEDIUM' 
+    ELSE 'LOW'
+  END as confidence_level
+FROM address_historical ah
+JOIN recent_activity ra ON ah.from_address = ra.from_address
+JOIN dormant_reactivation dr ON ah.from_address = dr.from_address
+LEFT JOIN mixing_connections mc ON ah.from_address = mc.from_address
+WHERE ra.recent_avg_amount / ah.hist_avg_amount > 3.0
+  AND ABS(ra.recent_weekend_ratio - ah.hist_weekend_ratio) > 0.2
+ORDER BY risk_score DESC, amount_increase_pct DESC;
+```
+
+### Expected Result:
+```
+bc1xyz123... | 234.5% | 2.847 | 5 | 7.2 | HIGH
+1A1zP1eP5Q... | 189.2% | 1.932 | 3 | 4.8 | MEDIUM
+3J98t1WpEZ... | 156.7% | 2.234 | 0 | 0.0 | MEDIUM
+```
+
+### System Generated SQL (Incorrect):
+```sql
+SELECT from_address, AVG(amount) 
+FROM transactions 
+WHERE timestamp > date('now', '-3 months')
+  AND amount > (SELECT AVG(amount) * 2 FROM transactions)
+GROUP BY from_address
+ORDER BY AVG(amount) DESC;
+```
+
+### Incorrect Result:
+```
+bc1xyz123... | 0.00234
+1A1zP1eP5Q... | 0.00189
+(Missing all required statistical measures and logic)
+```
+
+### Why This Fails:
+The system completely missed the multi-temporal analysis, statistical confidence calculations, graph traversal for mixing detection, and complex conditional logic chains. It defaulted to a simple aggregation query.
+
+---
+
+## TEST CASE #2: Recursive Transaction Path Analysis
+
+### Natural Language Question:
+Trace all possible transaction paths from address 'bc1source123' to address 'bc1dest456' that occurred within a 48-hour window, where each intermediate address in the path had a transaction volume increase of at least 50% compared to their 30-day average immediately before receiving funds from the previous address in the chain. Calculate the path efficiency score (total amount retained / initial amount * path length penalty), identify potential split-merge patterns where funds were divided and later recombined, and rank paths by their obfuscation complexity score based on the number of hops, timing patterns, and amount variations.
+
+### Expected SQL Query (Correct):
+```sql
+WITH RECURSIVE transaction_paths AS (
+  -- Base case: direct transactions from source
+  SELECT 
+    from_address,
+    to_address,
+    amount,
+    timestamp,
+    1 as hop_count,
+    CAST(from_address || '->' || to_address AS TEXT) as path,
+    amount as path_total,
+    amount as initial_amount,
+    block_height
+  FROM transactions 
+  WHERE from_address = 'bc1source123'
+    AND timestamp >= datetime('now', '-48 hours')
+  
+  UNION ALL
+  
+  -- Recursive case: extend paths
+  SELECT 
+    t.from_address,
+    t.to_address,
+    t.amount,
+    t.timestamp,
+    tp.hop_count + 1,
+    tp.path || '->' || t.to_address,
+    tp.path_total + t.amount,
+    tp.initial_amount,
+    t.block_height
+  FROM transactions t
+  JOIN transaction_paths tp ON t.from_address = tp.to_address
+  WHERE tp.hop_count < 10  -- Prevent infinite recursion
+    AND t.timestamp >= tp.timestamp
+    AND t.timestamp <= datetime(tp.timestamp, '+48 hours')
+    AND t.to_address != tp.from_address  -- Prevent cycles
+    AND EXISTS (
+      -- Check volume increase condition
+      SELECT 1 
+      FROM (
+        SELECT 
+          AVG(amount) as avg_30d
+        FROM transactions t30
+        WHERE t30.from_address = t.from_address
+          AND t30.timestamp BETWEEN datetime(t.timestamp, '-30 days') 
+                               AND datetime(t.timestamp, '-1 day')
+      ) vol_check
+      WHERE t.amount >= vol_check.avg_30d * 1.5
+    )
+),
+complete_paths AS (
+  SELECT *,
+    CASE 
+      WHEN to_address = 'bc1dest456' THEN 1 
+      ELSE 0 
+    END as reaches_destination
+  FROM transaction_paths
+),
+split_merge_analysis AS (
+  SELECT 
+    cp1.path,
+    cp1.hop_count,
+    cp1.path_total,
+    cp1.initial_amount,
+    -- Detect splits (one input, multiple outputs)
+    COUNT(CASE WHEN cp2.from_address = cp1.from_address 
+               AND cp2.path != cp1.path 
+               AND cp2.timestamp = cp1.timestamp 
+          THEN 1 END) as split_count,
+    -- Detect merges (multiple inputs, one output)  
+    COUNT(CASE WHEN cp2.to_address = cp1.to_address 
+               AND cp2.path != cp1.path
+               AND ABS(strftime('%s', cp2.timestamp) - strftime('%s', cp1.timestamp)) <= 3600
+          THEN 1 END) as merge_count
+  FROM complete_paths cp1
+  LEFT JOIN complete_paths cp2 ON 1=1  -- Cross join for analysis
+  WHERE cp1.reaches_destination = 1
+  GROUP BY cp1.path, cp1.hop_count, cp1.path_total, cp1.initial_amount
+),
+path_metrics AS (
+  SELECT 
+    sma.*,
+    -- Efficiency score: (retained amount / initial) * (1 / hop_count penalty)
+    ROUND((path_total / initial_amount) * (1.0 / POWER(hop_count, 1.2)), 4) as efficiency_score,
+    -- Timing variance (obfuscation indicator)
+    COALESCE((
+      SELECT STDDEV(strftime('%s', timestamp)) 
+      FROM complete_paths cp3 
+      WHERE cp3.path = sma.path
+    ), 0) as timing_variance,
+    -- Amount variance (obfuscation indicator)  
+    COALESCE((
+      SELECT STDDEV(amount) 
+      FROM complete_paths cp4 
+      WHERE cp4.path = sma.path
+    ), 0) as amount_variance
+  FROM split_merge_analysis sma
+),
+obfuscation_scores AS (
+  SELECT *,
+    ROUND(
+      (hop_count * 2) +                    -- Base complexity from hops
+      (split_count * 3) +                  -- Split pattern complexity  
+      (merge_count * 3) +                  -- Merge pattern complexity
+      (timing_variance / 3600.0) +        -- Timing spread complexity
+      LOG(amount_variance + 1) +           -- Amount variation complexity
+      (CASE WHEN efficiency_score < 0.5 THEN 5 ELSE 0 END)  -- Low efficiency penalty
+    , 2) as obfuscation_complexity_score
+  FROM path_metrics
+)
+SELECT 
+  path,
+  hop_count,
+  ROUND(initial_amount, 8) as initial_btc,
+  ROUND(path_total, 8) as final_btc,
+  efficiency_score,
+  split_count,
+  merge_count, 
+  obfuscation_complexity_score,
+  CASE 
+    WHEN obfuscation_complexity_score > 20 THEN 'HIGHLY_OBFUSCATED'
+    WHEN obfuscation_complexity_score > 10 THEN 'MODERATELY_OBFUSCATED' 
+    ELSE 'LOW_OBFUSCATION'
+  END as obfuscation_level
+FROM obfuscation_scores
+ORDER BY obfuscation_complexity_score DESC, efficiency_score DESC
+LIMIT 50;
+```
+
+### Expected Result:
+```
+bc1source123->bc1mid1->bc1mid2->bc1dest456 | 3 | 0.5000 | 0.4832 | 0.1847 | 2 | 1 | 18.45 | MODERATELY_OBFUSCATED
+bc1source123->bc1split1->bc1merge1->bc1dest456 | 3 | 0.5000 | 0.4901 | 0.1923 | 3 | 2 | 21.23 | HIGHLY_OBFUSCATED
+```
+
+### System Generated SQL (Incorrect):
+```sql
+SELECT from_address, to_address, amount 
+FROM transactions 
+WHERE from_address = 'bc1source123' 
+   OR to_address = 'bc1dest456'
+ORDER BY timestamp;
+```
+
+### Incorrect Result:
+```
+bc1source123 | bc1random1 | 0.00123
+bc1random2 | bc1dest456 | 0.00456
+(No path tracing, no recursive logic, no metrics)
+```
+
+### Why This Fails:
+The system cannot handle recursive CTEs, complex path analysis, statistical variance calculations, or multi-level conditional logic. It defaults to simple filtering instead of graph traversal.
+
+---
+
+## TEST CASE #3: Advanced Market Manipulation Detection
+
+### Natural Language Question:
+Identify potential coordinated market manipulation by finding clusters of addresses that exhibit synchronized trading patterns, where synchronization is defined as: (1) executing transactions within 10-minute windows at least 15 times in the past month, (2) having similar transaction amounts (within 5% variance), (3) targeting the same recipient addresses in coordinated fashion, (4) showing artificial volume spikes that correlate with specific block height ranges, and (5) demonstrating wash trading patterns where funds cycle back to origin addresses within 6 transaction hops. Calculate network centrality scores, temporal correlation coefficients, volume manipulation indices, and provide a risk assessment matrix showing interconnectedness levels between suspected coordinated groups.
+
+### Expected SQL Query (Correct):
+```sql
+WITH synchronized_windows AS (
+  SELECT 
+    t1.from_address as addr1,
+    t2.from_address as addr2,
+    datetime(t1.timestamp, 'unixepoch', 'start of day', '+' || 
+             (strftime('%s', t1.timestamp) % 86400 / 600) * 600 || ' seconds') as window_start,
+    COUNT(*) as sync_count,
+    AVG(ABS(t1.amount - t2.amount) / ((t1.amount + t2.amount) / 2)) as amount_variance,
+    COUNT(DISTINCT t1.to_address) as unique_targets
+  FROM transactions t1
+  JOIN transactions t2 ON t1.from_address < t2.from_address
+  WHERE ABS(strftime('%s', t1.timestamp) - strftime('%s', t2.timestamp)) <= 600
+    AND t1.timestamp >= datetime('now', '-30 days')
+    AND t2.timestamp >= datetime('now', '-30 days')
+    AND t1.to_address = t2.to_address  -- Same target
+  GROUP BY t1.from_address, t2.from_address, window_start
+  HAVING COUNT(*) >= 2
+),
+coordinated_pairs AS (
+  SELECT 
+    addr1, addr2,
+    COUNT(*) as sync_window_count,
+    AVG(amount_variance) as avg_amount_variance,
+    SUM(sync_count) as total_sync_transactions
+  FROM synchronized_windows
+  GROUP BY addr1, addr2
+  HAVING COUNT(*) >= 15 AND AVG(amount_variance) <= 0.05
+),
+volume_spikes AS (
+  SELECT 
+    from_address,
+    block_height,
+    SUM(amount) as block_volume,
+    COUNT(*) as block_tx_count,
+    AVG(SUM(amount)) OVER (
+      PARTITION BY from_address 
+      ORDER BY block_height 
+      ROWS BETWEEN 99 PRECEDING AND 1 PRECEDING
+    ) as avg_volume_100blocks
+  FROM transactions
+  WHERE timestamp >= datetime('now', '-30 days')
+  GROUP BY from_address, block_height
+),
+manipulation_indicators AS (
+  SELECT 
+    from_address,
+    COUNT(CASE WHEN block_volume > avg_volume_100blocks * 5 THEN 1 END) as spike_count,
+    AVG(block_volume / NULLIF(avg_volume_100blocks, 0)) as avg_volume_ratio,
+    STDDEV(block_volume) as volume_volatility
+  FROM volume_spikes
+  WHERE avg_volume_100blocks > 0
+  GROUP BY from_address
+  HAVING COUNT(CASE WHEN block_volume > avg_volume_100blocks * 5 THEN 1 END) >= 3
+),
+wash_trading_paths AS (
+  WITH RECURSIVE wash_paths AS (
+    SELECT 
+      from_address as origin,
+      to_address,
+      amount,
+      1 as hop,
+      CAST(from_address AS TEXT) as path
+    FROM transactions
+    WHERE timestamp >= datetime('now', '-30 days')
+    
+    UNION ALL
+    
+    SELECT 
+      wp.origin,
+      t.to_address,
+      wp.amount,
+      wp.hop + 1,
+      wp.path || '->' || t.to_address
+    FROM wash_paths wp
+    JOIN transactions t ON wp.to_address = t.from_address
+    WHERE wp.hop < 6
+      AND t.timestamp >= datetime('now', '-30 days')
+  )
+  SELECT 
+    origin,
+    COUNT(*) as wash_cycles,
+    AVG(hop) as avg_cycle_length,
+    SUM(amount) as total_wash_volume
+  FROM wash_paths
+  WHERE to_address = origin AND hop >= 3
+  GROUP BY origin
+  HAVING COUNT(*) >= 2
+),
+network_centrality AS (
+  SELECT 
+    cp.addr1 as address,
+    COUNT(DISTINCT cp.addr2) as connection_count,
+    AVG(cp.total_sync_transactions) as avg_sync_strength,
+    SUM(cp.total_sync_transactions) as total_coordinated_volume
+  FROM coordinated_pairs cp
+  GROUP BY cp.addr1
+  
+  UNION ALL
+  
+  SELECT 
+    cp.addr2 as address,
+    COUNT(DISTINCT cp.addr1) as connection_count,
+    AVG(cp.total_sync_transactions) as avg_sync_strength,
+    SUM(cp.total_sync_transactions) as total_coordinated_volume
+  FROM coordinated_pairs cp
+  GROUP BY cp.addr2
+),
+centrality_scores AS (
+  SELECT 
+    address,
+    SUM(connection_count) as total_connections,
+    AVG(avg_sync_strength) as centrality_score,
+    SUM(total_coordinated_volume) as influence_volume
+  FROM network_centrality
+  GROUP BY address
+),
+correlation_matrix AS (
+  SELECT 
+    cp.addr1,
+    cp.addr2,
+    cp.total_sync_transactions,
+    cp.avg_amount_variance,
+    -- Temporal correlation coefficient (simplified)
+    ROUND(
+      1.0 - (cp.avg_amount_variance * 2) - 
+      (ABS(15 - cp.sync_window_count) / 15.0)
+    , 3) as temporal_correlation
+  FROM coordinated_pairs cp
+)
+SELECT 
+  cs.address,
+  cs.total_connections,
+  ROUND(cs.centrality_score, 4) as network_centrality_score,
+  ROUND(cs.influence_volume, 8) as influence_btc,
+  COALESCE(mi.spike_count, 0) as volume_spike_count,
+  ROUND(COALESCE(mi.avg_volume_ratio, 1.0), 2) as volume_manipulation_index,
+  COALESCE(wtp.wash_cycles, 0) as wash_trading_cycles,
+  ROUND(COALESCE(wtp.avg_cycle_length, 0), 1) as avg_wash_cycle_length,
+  -- Risk score calculation
+  ROUND(
+    (cs.total_connections * 2) +
+    (COALESCE(mi.spike_count, 0) * 3) +
+    (COALESCE(wtp.wash_cycles, 0) * 5) +
+    (CASE WHEN cs.centrality_score > 100 THEN 10 ELSE 0 END)
+  , 2) as composite_risk_score,
+  CASE 
+    WHEN (cs.total_connections >= 10 AND 
+          COALESCE(mi.spike_count, 0) >= 5 AND 
+          COALESCE(wtp.wash_cycles, 0) >= 3) THEN 'CRITICAL'
+    WHEN (cs.total_connections >= 5 AND 
+          COALESCE(mi.spike_count, 0) >= 3) THEN 'HIGH'
+    WHEN cs.total_connections >= 3 THEN 'MEDIUM'
+    ELSE 'LOW'
+  END as risk_level
+FROM centrality_scores cs
+LEFT JOIN manipulation_indicators mi ON cs.address = mi.from_address
+LEFT JOIN wash_trading_paths wtp ON cs.address = wtp.origin
+WHERE cs.total_connections >= 3
+ORDER BY composite_risk_score DESC
+LIMIT 25;
+```
+
+### Expected Result:
+```
+bc1manip123 | 15 | 245.67 | 12.3456 | 8 | 7.45 | 5 | 4.2 | 67.45 | CRITICAL
+1Manipulat0r | 12 | 189.23 | 8.9012 | 6 | 5.23 | 3 | 3.8 | 52.23 | HIGH
+3CoordAttck | 8 | 134.56 | 5.6789 | 4 | 3.45 | 2 | 3.1 | 38.56 | MEDIUM
+```
+
+### System Generated SQL (Incorrect):
+```sql
+SELECT from_address, COUNT(*) as transaction_count
+FROM transactions 
+WHERE timestamp >= datetime('now', '-30 days')
+GROUP BY from_address
+HAVING COUNT(*) > 100
+ORDER BY COUNT(*) DESC;
+```
+
+### Incorrect Result:
+```
+bc1active123 | 456
+1Bitcoin234 | 398
+(Simple transaction counting, no coordination analysis)
+```
+
+### Why This Fails:
+The system cannot handle complex windowing functions, correlation calculations, recursive path analysis, multi-dimensional clustering, or sophisticated risk scoring algorithms. It defaults to basic aggregation.
+
+---
+
+## Analysis Summary
+
+### Common Failure Patterns in Current Systems:
+
+1. **Temporal Logic Collapse**: Systems struggle with multi-timeframe analysis and complex date calculations
+2. **Statistical Function Gaps**: Advanced statistics like correlation, variance, and z-scores are not recognized
+3. **Recursive Query Limitation**: Graph traversal and path analysis require recursive CTEs that systems can't generate
+4. **Multi-Table Join Complexity**: Systems default to simple joins instead of complex relationship mapping
+5. **Business Logic Translation**: Complex conditional logic and domain-specific rules are lost in translation
+6. **Window Function Sophistication**: Advanced windowing with custom partitions and complex aggregations
+
+### Key Takeaway:
+These test cases reveal that current text-to-SQL systems work well for simple queries but completely break down when faced with real-world analytical complexity requiring domain expertise, advanced SQL features, and multi-step logical reasoning.
+
+### Based on Spider 2.0 Research:
+Even state-of-the-art models like GPT-4 and o1-preview achieve only 21.3% success rate on enterprise-level SQL tasks, demonstrating the significant gap between current capabilities and real-world requirements.

@@ -1,0 +1,335 @@
+{
+  "metadata": {
+    "title": "Bitcoin Natural Language to SQL Test Cases",
+    "total_cases": 15,
+    "difficulty_levels": [
+      "Basic",
+      "Intermediate",
+      "Advanced"
+    ],
+    "generated_at": "2025-06-06T17:04:40.075956"
+  },
+  "test_cases": [
+    {
+      "id": 1,
+      "difficulty": "Basic",
+      "natural_language_question": "How many blocks are in the database?",
+      "expected_sql": "SELECT COUNT(*) FROM blocks;",
+      "description": "Basic count of all blocks",
+      "execution_successful": true,
+      "result_columns": [
+        "COUNT(*)"
+      ],
+      "result_rows": [
+        [
+          1
+        ]
+      ],
+      "result_count": 1
+    },
+    {
+      "id": 2,
+      "difficulty": "Basic",
+      "natural_language_question": "How many transactions are there?",
+      "expected_sql": "SELECT COUNT(*) FROM transactions;",
+      "description": "Basic count of all transactions",
+      "execution_successful": true,
+      "result_columns": [
+        "COUNT(*)"
+      ],
+      "result_rows": [
+        [
+          2
+        ]
+      ],
+      "result_count": 1
+    },
+    {
+      "id": 3,
+      "difficulty": "Basic",
+      "natural_language_question": "What is the highest block height?",
+      "expected_sql": "SELECT MAX(height) FROM blocks;",
+      "description": "Simple aggregation function",
+      "execution_successful": true,
+      "result_columns": [
+        "MAX(height)"
+      ],
+      "result_rows": [
+        [
+          800000
+        ]
+      ],
+      "result_count": 1
+    },
+    {
+      "id": 4,
+      "difficulty": "Basic",
+      "natural_language_question": "How many transaction outputs are there?",
+      "expected_sql": "SELECT COUNT(*) FROM transaction_outputs;",
+      "description": "Count from outputs table",
+      "execution_successful": true,
+      "result_columns": [
+        "COUNT(*)"
+      ],
+      "result_rows": [
+        [
+          3
+        ]
+      ],
+      "result_count": 1
+    },
+    {
+      "id": 5,
+      "difficulty": "Basic",
+      "natural_language_question": "What is the total size of all blocks?",
+      "expected_sql": "SELECT SUM(size) FROM blocks WHERE size IS NOT NULL;",
+      "description": "Sum with NULL handling",
+      "execution_successful": true,
+      "result_columns": [
+        "SUM(size)"
+      ],
+      "result_rows": [
+        [
+          1234567
+        ]
+      ],
+      "result_count": 1
+    },
+    {
+      "id": 6,
+      "difficulty": "Intermediate",
+      "natural_language_question": "What are the latest 5 blocks with their transaction counts?",
+      "expected_sql": "SELECT height, hash, nTx, datetime(time, 'unixepoch') as block_time FROM blocks ORDER BY height DESC LIMIT 5;",
+      "description": "Ordering with date conversion and limiting",
+      "execution_successful": true,
+      "result_columns": [
+        "height",
+        "hash",
+        "nTx",
+        "block_time"
+      ],
+      "result_rows": [
+        [
+          800000,
+          "00000000000000000002a7c4c1e48d76c5a37902165a270156b7a8d72728a054",
+          2500,
+          "2023-01-01 00:00:00"
+        ]
+      ],
+      "result_count": 1
+    },
+    {
+      "id": 7,
+      "difficulty": "Intermediate",
+      "natural_language_question": "What is the total amount of transaction fees collected?",
+      "expected_sql": "SELECT SUM(fee) FROM transactions WHERE fee IS NOT NULL AND fee > 0;",
+      "description": "Sum with filtering conditions",
+      "execution_successful": true,
+      "result_columns": [
+        "SUM(fee)"
+      ],
+      "result_rows": [
+        [
+          1e-05
+        ]
+      ],
+      "result_count": 1
+    },
+    {
+      "id": 8,
+      "difficulty": "Intermediate",
+      "natural_language_question": "How many transactions does each block contain?",
+      "expected_sql": "SELECT b.height, b.hash, COUNT(t.txid) as tx_count FROM blocks b LEFT JOIN transactions t ON b.hash = t.block_hash GROUP BY b.hash, b.height ORDER BY b.height DESC LIMIT 10;",
+      "description": "Join with grouping and counting",
+      "execution_successful": true,
+      "result_columns": [
+        "height",
+        "hash",
+        "tx_count"
+      ],
+      "result_rows": [
+        [
+          800000,
+          "00000000000000000002a7c4c1e48d76c5a37902165a270156b7a8d72728a054",
+          2
+        ]
+      ],
+      "result_count": 1
+    },
+    {
+      "id": 9,
+      "difficulty": "Intermediate",
+      "natural_language_question": "What are the 10 largest transaction outputs by value?",
+      "expected_sql": "SELECT txid, value, n as output_index, scriptpubkey_type FROM transaction_outputs WHERE value IS NOT NULL ORDER BY value DESC LIMIT 10;",
+      "description": "Filtering and ordering by value",
+      "execution_successful": true,
+      "result_columns": [
+        "txid",
+        "value",
+        "output_index",
+        "scriptpubkey_type"
+      ],
+      "result_rows": [
+        [
+          "1a2b3c4d5e6f7890123456789012345678901234567890123456789abcdef123",
+          6.25,
+          0,
+          "pubkeyhash"
+        ],
+        [
+          "2b3c4d5e6f78901234567890123456789012345678901234567890abcdef1234",
+          0.005,
+          0,
+          "pubkeyhash"
+        ],
+        [
+          "2b3c4d5e6f78901234567890123456789012345678901234567890abcdef1234",
+          0.0045,
+          1,
+          "pubkeyhash"
+        ]
+      ],
+      "result_count": 3
+    },
+    {
+      "id": 10,
+      "difficulty": "Intermediate",
+      "natural_language_question": "Which blocks have more than 1 transaction?",
+      "expected_sql": "SELECT height, hash, nTx FROM blocks WHERE nTx > 1 ORDER BY nTx DESC;",
+      "description": "Filtering with comparison operators",
+      "execution_successful": true,
+      "result_columns": [
+        "height",
+        "hash",
+        "nTx"
+      ],
+      "result_rows": [
+        [
+          800000,
+          "00000000000000000002a7c4c1e48d76c5a37902165a270156b7a8d72728a054",
+          2500
+        ]
+      ],
+      "result_count": 1
+    },
+    {
+      "id": 11,
+      "difficulty": "Advanced",
+      "natural_language_question": "What is the average transaction fee per block?",
+      "expected_sql": "SELECT b.height, b.hash, AVG(t.fee) as avg_fee FROM blocks b JOIN transactions t ON b.hash = t.block_hash WHERE t.fee IS NOT NULL AND t.fee > 0 GROUP BY b.hash, b.height ORDER BY b.height DESC LIMIT 10;",
+      "description": "Multi-table join with aggregation and grouping",
+      "execution_successful": true,
+      "result_columns": [
+        "height",
+        "hash",
+        "avg_fee"
+      ],
+      "result_rows": [
+        [
+          800000,
+          "00000000000000000002a7c4c1e48d76c5a37902165a270156b7a8d72728a054",
+          1e-05
+        ]
+      ],
+      "result_count": 1
+    },
+    {
+      "id": 12,
+      "difficulty": "Advanced",
+      "natural_language_question": "How much Bitcoin value is in each transaction?",
+      "expected_sql": "SELECT t.txid, SUM(o.value) as total_output_value FROM transactions t JOIN transaction_outputs o ON t.txid = o.txid WHERE o.value IS NOT NULL GROUP BY t.txid ORDER BY total_output_value DESC LIMIT 10;",
+      "description": "Complex join with aggregation across tables",
+      "execution_successful": true,
+      "result_columns": [
+        "txid",
+        "total_output_value"
+      ],
+      "result_rows": [
+        [
+          "1a2b3c4d5e6f7890123456789012345678901234567890123456789abcdef123",
+          6.25
+        ],
+        [
+          "2b3c4d5e6f78901234567890123456789012345678901234567890abcdef1234",
+          0.0095
+        ]
+      ],
+      "result_count": 2
+    },
+    {
+      "id": 13,
+      "difficulty": "Advanced",
+      "natural_language_question": "What is the distribution of transaction types in outputs?",
+      "expected_sql": "SELECT scriptpubkey_type, COUNT(*) as count, ROUND(AVG(value), 8) as avg_value FROM transaction_outputs WHERE scriptpubkey_type IS NOT NULL GROUP BY scriptpubkey_type ORDER BY count DESC;",
+      "description": "Grouping with multiple aggregations",
+      "execution_successful": true,
+      "result_columns": [
+        "scriptpubkey_type",
+        "count",
+        "avg_value"
+      ],
+      "result_rows": [
+        [
+          "pubkeyhash",
+          3,
+          2.0865
+        ]
+      ],
+      "result_count": 1
+    },
+    {
+      "id": 14,
+      "difficulty": "Advanced",
+      "natural_language_question": "Which addresses have received the most Bitcoin?",
+      "expected_sql": "SELECT json_extract(scriptpubkey_addresses, '$[0]') as address, SUM(value) as total_received, COUNT(*) as tx_count FROM transaction_outputs WHERE scriptpubkey_addresses IS NOT NULL AND value IS NOT NULL GROUP BY json_extract(scriptpubkey_addresses, '$[0]') ORDER BY total_received DESC LIMIT 10;",
+      "description": "JSON extraction with complex aggregation",
+      "execution_successful": true,
+      "result_columns": [
+        "address",
+        "total_received",
+        "tx_count"
+      ],
+      "result_rows": [
+        [
+          "1BCt3E5q9j2K1NzP8qX7wR8g5k7J8mN9pL",
+          6.25,
+          1
+        ],
+        [
+          "1CD4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9",
+          0.005,
+          1
+        ],
+        [
+          "1DE5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0",
+          0.0045,
+          1
+        ]
+      ],
+      "result_count": 3
+    },
+    {
+      "id": 15,
+      "difficulty": "Advanced",
+      "natural_language_question": "What is the relationship between block size and transaction count?",
+      "expected_sql": "SELECT b.height, b.size, b.nTx, ROUND(CAST(b.size AS FLOAT) / b.nTx, 2) as avg_tx_size FROM blocks b WHERE b.size IS NOT NULL AND b.nTx > 0 ORDER BY b.height DESC LIMIT 10;",
+      "description": "Mathematical calculations with type casting",
+      "execution_successful": true,
+      "result_columns": [
+        "height",
+        "size",
+        "nTx",
+        "avg_tx_size"
+      ],
+      "result_rows": [
+        [
+          800000,
+          1234567,
+          2500,
+          493.83
+        ]
+      ],
+      "result_count": 1
+    }
+  ]
+}
