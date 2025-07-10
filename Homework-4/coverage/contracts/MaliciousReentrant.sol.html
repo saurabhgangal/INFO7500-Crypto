@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for contracts/MaliciousReentrant.sol</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../prettify.css" />
+    <link rel="stylesheet" href="../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../index.html">all files</a> / <a href="index.html">contracts/</a> MaliciousReentrant.sol
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">0% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>0/26</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">0% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>0/10</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">0% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>0/9</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">0% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>0/42</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line low'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102</td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+&nbsp;
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+&nbsp;
+interface ISimpleAMM {
+    function deposit(uint256 amountA, uint256 amountB) external returns (uint256);
+    function redeem(uint256 liquidity) external returns (uint256, uint256);
+    function swap(address tokenIn, uint256 amountIn, uint256 minAmountOut) external returns (uint256);
+    function balanceOf(address account) external view returns (uint256);
+}
+&nbsp;
+contract MaliciousReentrant is IERC20 {
+    ISimpleAMM public amm;
+    bool public attacking;
+    address public tokenA;
+    address public tokenB;
+    
+<span class="fstat-no" title="function not covered" >    constructor(address _amm) {</span>
+        amm = ISimpleAMM(_amm);
+    }
+    
+<span class="fstat-no" title="function not covered" >    function deposit(address tokenA, address tokenB, uint256 amountA, uint256 amountB) external {</span>
+<span class="cstat-no" title="statement not covered" >        IERC20(tokenA).approve(address(amm), type(uint256).max)</span>;
+<span class="cstat-no" title="statement not covered" >        IERC20(tokenB).approve(address(amm), type(uint256).max)</span>;
+<span class="cstat-no" title="statement not covered" >        amm.deposit(amountA, amountB)</span>;
+    }
+    
+<span class="fstat-no" title="function not covered" >    function attackDeposit(address _tokenA, address _tokenB) external {</span>
+        tokenA = _tokenA;
+        tokenB = _tokenB;
+<span class="cstat-no" title="statement not covered" >        IERC20(tokenA).approve(address(amm), type(uint256).max)</span>;
+<span class="cstat-no" title="statement not covered" >        IERC20(tokenB).approve(address(amm), type(uint256).max)</span>;
+        attacking = true;
+<span class="cstat-no" title="statement not covered" >        amm.deposit(100e18, 200e18)</span>;
+    }
+    
+<span class="fstat-no" title="function not covered" >    function attackRedeem() external {</span>
+        attacking = true;
+<span class="cstat-no" title="statement not covered" >        uint256 balance = amm.balanceOf(address(this));</span>
+<span class="cstat-no" title="statement not covered" >        amm.redeem(balance)</span>;
+    }
+    
+<span class="fstat-no" title="function not covered" >    function attackSwap(address tokenIn, uint256 amountIn) external {</span>
+<span class="cstat-no" title="statement not covered" >        IERC20(tokenIn).approve(address(amm), type(uint256).max)</span>;
+        attacking = true;
+<span class="cstat-no" title="statement not covered" >        amm.swap(tokenIn, amountIn, 0)</span>;
+    }
+    
+    // ERC20 functions to make this contract act as a malicious token
+    mapping(address =&gt; uint256) public balanceOf;
+    mapping(address =&gt; mapping(address =&gt; uint256)) public allowance;
+    uint256 public totalSupply;
+    uint8 public decimals = 18;
+    string public name = "Malicious";
+    string public symbol = "MAL";
+    
+<span class="fstat-no" title="function not covered" >    function transfer(address to, uint256 amount) external returns (bool) {</span>
+        // During transfer, attempt reentrancy
+<span class="cstat-no" title="statement not covered" >        if (attacking &amp;&amp; to == address(amm)) {</span>
+            attacking = false;
+<span class="cstat-no" title="statement not covered" >            try amm.deposit(1e18, 2e18) {} catch {}</span>
+        }
+        
+<span class="cstat-no" title="statement not covered" >        require(balanceOf[msg.sender] &gt;= amount, "Insufficient balance")</span>;
+        balanceOf[msg.sender] -= amount;
+        balanceOf[to] += amount;
+<span class="cstat-no" title="statement not covered" >        emit Transfer(msg.sender, to, amount);</span>
+<span class="cstat-no" title="statement not covered" >        return true;</span>
+    }
+    
+<span class="fstat-no" title="function not covered" >    function transferFrom(address from, address to, uint256 amount) external returns (bool) {</span>
+        // During transferFrom, attempt reentrancy
+<span class="cstat-no" title="statement not covered" >        if (attacking &amp;&amp; to == address(amm)) {</span>
+            attacking = false;
+<span class="cstat-no" title="statement not covered" >            try amm.deposit(1e18, 2e18) {} catch {}</span>
+<span class="cstat-no" title="statement not covered" >            try amm.redeem(1) {} catch {}</span>
+<span class="cstat-no" title="statement not covered" >            try amm.swap(tokenA, 1e18, 0) {} catch {}</span>
+        }
+        
+<span class="cstat-no" title="statement not covered" >        require(allowance[from][msg.sender] &gt;= amount, "Insufficient allowance")</span>;
+<span class="cstat-no" title="statement not covered" >        require(balanceOf[from] &gt;= amount, "Insufficient balance")</span>;
+        allowance[from][msg.sender] -= amount;
+        balanceOf[from] -= amount;
+        balanceOf[to] += amount;
+<span class="cstat-no" title="statement not covered" >        emit Transfer(from, to, amount);</span>
+<span class="cstat-no" title="statement not covered" >        return true;</span>
+    }
+    
+<span class="fstat-no" title="function not covered" >    function approve(address spender, uint256 amount) external returns (bool) {</span>
+        allowance[msg.sender][spender] = amount;
+<span class="cstat-no" title="statement not covered" >        emit Approval(msg.sender, spender, amount);</span>
+<span class="cstat-no" title="statement not covered" >        return true;</span>
+    }
+    
+    // Give this contract some balance for testing
+<span class="fstat-no" title="function not covered" >    function mint(uint256 amount) external {</span>
+        balanceOf[address(this)] += amount;
+        totalSupply += amount;
+<span class="cstat-no" title="statement not covered" >        emit Transfer(address(0), address(this), amount);</span>
+    }
+}</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Thu Jul 10 2025 12:22:01 GMT-0400 (Eastern Daylight Time)
+</div>
+</div>
+<script src="../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../sorter.js"></script>
+</body>
+</html>
