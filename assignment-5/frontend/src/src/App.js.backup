@@ -1,0 +1,253 @@
+// frontend/src/App.js - Minimal Version
+import React, { useState, useEffect } from 'react';
+import { WagmiConfig, createConfig, configureChains, createPublicClient, http } from 'wagmi';
+import { localhost } from 'wagmi/chains';
+import { publicProvider } from 'wagmi/providers/public';
+import { InjectedConnector } from 'wagmi/connectors/injected';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Toaster } from 'react-hot-toast';
+import './App.css';
+
+// Components
+import Header from './components/Header';
+import PoolList from './components/PoolList';
+import CreatePool from './components/CreatePool';
+import SwapForm from './components/SwapForm';
+import LiquidityForm from './components/LiquidityForm';
+import TransactionHistory from './components/TransactionHistory';
+import Analytics from './components/Analytics';
+import PriceChart from './components/PriceChart';
+import GasEstimator from './components/GasEstimator';
+
+// Context
+import { ThemeProvider } from './contexts/ThemeContext';
+
+// Configure for localhost only
+const { chains, publicClient } = configureChains(
+  [localhost],
+  [publicProvider()]
+);
+
+// Simple injected connector (MetaMask)
+const connectors = [
+  new InjectedConnector({
+    chains,
+    options: {
+      name: 'MetaMask',
+      shimDisconnect: true,
+    },
+  }),
+];
+
+// Create wagmi config
+const config = createConfig({
+  autoConnect: true,
+  connectors,
+  publicClient,
+});
+
+// Create query client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 3,
+    },
+  },
+});
+
+// Simple connect button component (no RainbowKit)
+function ConnectButton() {
+  const { address, isConnected, connect, disconnect } = useAccount();
+  const { data: balance } = useBalance({ address });
+
+  if (isConnected) {
+    return (
+      <div className="connect-button-wrapper">
+        <span className="address">
+          {address?.slice(0, 6)}...{address?.slice(-4)}
+        </span>
+        <button onClick={() => disconnect()} className="disconnect-btn">
+          Disconnect
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <button 
+      onClick={() => connect({ connector: connectors[0] })} 
+      className="connect-btn"
+    >
+      Connect Wallet
+    </button>
+  );
+}
+
+function App() {
+  const [selectedPool, setSelectedPool] = useState(null);
+  const [activeTab, setActiveTab] = useState('swap');
+  const [showAnalytics, setShowAnalytics] = useState(false);
+  const [theme, setTheme] = useState('dark');
+
+  // Load saved preferences
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    setTheme(savedTheme);
+    document.body.className = savedTheme;
+  }, []);
+
+  const toggleTheme = () => {
+    const newTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme);
+    localStorage.setItem('theme', newTheme);
+    document.body.className = newTheme;
+  };
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <WagmiConfig config={config}>
+        <ThemeProvider value={{ theme, toggleTheme }}>
+          <div className="App">
+            <Toaster 
+              position="top-right"
+              toastOptions={{
+                duration: 4000,
+                style: {
+                  background: theme === 'dark' ? '#333' : '#fff',
+                  color: theme === 'dark' ? '#fff' : '#333',
+                },
+              }}
+            />
+            
+            {/* Modified Header without RainbowKit */}
+            <header className="header">
+              <div className="header-left">
+                <div className="logo">
+                  <span className="logo-icon">🔄</span>
+                  <div>
+                    <h1>Premium AMM</h1>
+                    <span className="subtitle">Decentralized Exchange</span>
+                  </div>
+                </div>
+              </div>
+
+              <nav className="header-nav">
+                <button 
+                  className={`nav-btn ${!showAnalytics ? 'active' : ''}`}
+                  onClick={() => setShowAnalytics(false)}
+                >
+                  Trade
+                </button>
+                <button 
+                  className={`nav-btn ${showAnalytics ? 'active' : ''}`}
+                  onClick={() => setShowAnalytics(true)}
+                >
+                  Analytics
+                </button>
+              </nav>
+
+              <div className="header-right">
+                <button 
+                  className="theme-toggle"
+                  onClick={toggleTheme}
+                  title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+                >
+                  {theme === 'dark' ? '🌞' : '🌙'}
+                </button>
+                <ConnectButton />
+              </div>
+            </header>
+            
+            {/* Rest of the app remains the same */}
+            {showAnalytics ? (
+              <Analytics />
+            ) : (
+              <div className="container">
+                <div className="sidebar">
+                  <CreatePool 
+                    onPoolCreated={() => {
+                      window.location.reload();
+                    }} 
+                  />
+                  <PoolList 
+                    onSelectPool={setSelectedPool} 
+                    selectedPool={selectedPool} 
+                  />
+                  <TransactionHistory />
+                </div>
+                
+                <div className="main-content">
+                  {selectedPool ? (
+                    <>
+                      <div className="pool-info">
+                        <h2>{selectedPool.symbol0}/{selectedPool.symbol1} Pool</h2>
+                        <div className="pool-stats">
+                          <div>TVL: ${selectedPool.tvl?.toLocaleString() || '0'}</div>
+                          <div>24h Volume: ${selectedPool.volume24h?.toLocaleString() || '0'}</div>
+                          <div>24h Fees: ${selectedPool.fees24h?.toLocaleString() || '0'}</div>
+                        </div>
+                      </div>
+                      
+                      <PriceChart pool={selectedPool} />
+                      
+                      <div className="tabs">
+                        <button 
+                          className={activeTab === 'swap' ? 'active' : ''}
+                          onClick={() => setActiveTab('swap')}
+                        >
+                          Swap
+                        </button>
+                        <button 
+                          className={activeTab === 'liquidity' ? 'active' : ''}
+                          onClick={() => setActiveTab('liquidity')}
+                        >
+                          Liquidity
+                        </button>
+                      </div>
+                      
+                      <GasEstimator action={activeTab} pool={selectedPool} />
+                      
+                      {activeTab === 'swap' ? (
+                        <SwapForm pool={selectedPool} />
+                      ) : (
+                        <LiquidityForm pool={selectedPool} />
+                      )}
+                    </>
+                  ) : (
+                    <div className="no-pool-selected">
+                      <div className="welcome-animation">
+                        <div className="logo-animation">🔄</div>
+                      </div>
+                      <h2>Welcome to Premium AMM</h2>
+                      <p>Select a pool to start trading or create a new one</p>
+                      <div className="features">
+                        <div className="feature">
+                          <span className="icon">💱</span>
+                          <h3>Instant Swaps</h3>
+                          <p>Trade tokens with minimal slippage</p>
+                        </div>
+                        <div className="feature">
+                          <span className="icon">💰</span>
+                          <h3>Earn Fees</h3>
+                          <p>Provide liquidity and earn 0.3% on all trades</p>
+                        </div>
+                        <div className="feature">
+                          <span className="icon">🔒</span>
+                          <h3>Secure & Decentralized</h3>
+                          <p>No intermediaries, just smart contracts</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </ThemeProvider>
+      </WagmiConfig>
+    </QueryClientProvider>
+  );
+}
+
+export default App;
